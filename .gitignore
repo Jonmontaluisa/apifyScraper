@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+reports/
+.stryker-tmp/
+.env
+storage/
+apify_storage/
+qa/metrics.json
+*.log
+.DS_Store
+SPEC.md

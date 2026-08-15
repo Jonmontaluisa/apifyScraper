@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/07/schema#",
+  "title": "TweetOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "url",
+    "text",
+    "lang",
+    "createdAt",
+    "conversationId",
+    "isReply",
+    "isRetweet",
+    "isQuote",
+    "inReplyToId",
+    "quotedTweetId",
+    "author",
+    "metrics",
+    "entities",
+    "source",
+    "scrapedAt"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "url": { "type": "string" },
+    "text": { "type": "string" },
+    "lang": { "type": ["string", "null"] },
+    "createdAt": { "type": "string" },
+    "conversationId": { "type": ["string", "null"] },
+    "isReply": { "type": "boolean" },
+    "isRetweet": { "type": "boolean" },
+    "isQuote": { "type": "boolean" },
+    "inReplyToId": { "type": ["string", "null"] },
+    "quotedTweetId": { "type": ["string", "null"] },
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "username", "name", "verified", "followers", "following"],
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "name": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "followers": { "type": "integer" },
+        "following": { "type": "integer" }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["likes", "retweets", "replies", "quotes", "bookmarks", "views"],
+      "properties": {
+        "likes": { "type": "integer" },
+        "retweets": { "type": "integer" },
+        "replies": { "type": "integer" },
+        "quotes": { "type": "integer" },
+        "bookmarks": { "type": ["integer", "null"] },
+        "views": { "type": ["integer", "null"] }
+      }
+    },
+    "entities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hashtags", "mentions", "urls", "media"],
+      "properties": {
+        "hashtags": { "type": "array", "items": { "type": "string" } },
+        "mentions": { "type": "array", "items": { "type": "string" } },
+        "urls": { "type": "array", "items": { "type": "string" } },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "url", "thumbnail"],
+            "properties": {
+              "type": { "type": "string", "enum": ["photo", "video", "animated_gif"] },
+              "url": { "type": "string" },
+              "thumbnail": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "source": { "type": ["string", "null"] },
+    "scrapedAt": { "type": "string" }
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "title": "X Tweet Scraper",
+  "type": "object",
+  "schemaVersion": 1,
+  "description": "Search public X posts over HTTP. Free runners are capped at 10 dataset items per run.",
+  "properties": {
+    "searchTerms": {
+      "title": "Search terms",
+      "type": "array",
+      "description": "Keywords (OR). At least one of searchTerms, fromUsers, or hashtags is required.",
+      "editor": "stringList",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "fromUsers": {
+      "title": "From users",
+      "type": "array",
+      "description": "Author handles without @",
+      "editor": "stringList",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "toUsers": {
+      "title": "To users",
+      "type": "array",
+      "description": "Replies to these handles (without @)",
+      "editor": "stringList",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "mentioning": {
+      "title": "Mentioning",
+      "type": "array",
+      "description": "Tweets that mention these handles (without @)",
+      "editor": "stringList",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "hashtags": {
+      "title": "Hashtags",
+      "type": "array",
+      "description": "All of these hashtags must appear (without #)",
+      "editor": "stringList",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "since": {
+      "title": "Since",
+      "type": "string",
+      "description": "Inclusive start date YYYY-MM-DD (UTC)",
+      "editor": "datepicker",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "until": {
+      "title": "Until",
+      "type": "string",
+      "description": "Inclusive end date YYYY-MM-DD (UTC)",
+      "editor": "datepicker",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "language": {
+      "title": "Language",
+      "type": "string",
+      "description": "ISO 639-1 tweet language, e.g. en",
+      "editor": "textfield"
+    },
+    "minLikes": {
+      "title": "Min likes",
+      "type": "integer",
+      "description": "Minimum like count",
+      "editor": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "minRetweets": {
+      "title": "Min retweets",
+      "type": "integer",
+      "description": "Minimum retweet count",
+      "editor": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "minReplies": {
+      "title": "Min replies",
+      "type": "integer",
+      "description": "Minimum reply count",
+      "editor": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "onlyVerified": {
+      "title": "Only verified",
+      "type": "boolean",
+      "description": "Only tweets from verified authors",
+      "editor": "checkbox",
+      "default": false
+    },
+    "mediaType": {
+      "title": "Media type",
+      "type": "string",
+      "description": "Media constraint",
+      "editor": "select",
+      "enum": ["any", "text_only", "images", "video", "links"],
+      "default": "any"
+    },
+    "includeReplies": {
+      "title": "Include replies",
+      "type": "boolean",
+      "description": "Keep replies that match filters",
+      "editor": "checkbox",
+      "default": true
+    },
+    "includeRetweets": {
+      "title": "Include retweets",
+      "type": "boolean",
+      "description": "Keep retweets that match filters",
+      "editor": "checkbox",
+      "default": false
+    },
+    "sortBy": {
+      "title": "Sort by",
+      "type": "string",
+      "description": "Search ranking",
+      "editor": "select",
+      "enum": ["latest", "top"],
+      "default": "latest"
+    },
+    "maxResults": {
+      "title": "Max results",
+      "type": "integer",
+      "description": "Requested cap (free users still max 10)",
+      "editor": "number",
+      "minimum": 1,
+      "default": 10
+    },
+    "proxyConfiguration": {
+      "title": "Proxy configuration",
+      "type": "object",
+      "description": "Accepted for console compatibility. Ignored at runtime (no proxy spend).",
+      "editor": "proxy"
+    }
+  }
+}
