@@ -107,10 +107,18 @@ describe("GuestXClient", () => {
       );
     };
     try {
-      const client = new GuestXClient();
+      const lines: string[] = [];
+      const client = new GuestXClient(fetch, {
+        info: (m, extra) => lines.push(`${m} ${JSON.stringify(extra ?? {})}`),
+        warn: (m, extra) => lines.push(`${m} ${JSON.stringify(extra ?? {})}`),
+      });
       const page = await client.fetchPage({ input: baseInput(), cursor: null, product: "Latest" });
       expect(page.nextCursor).toBe("CURSOR");
       expect(page.tweets.length).toBeGreaterThan(0);
+      const joined = lines.join("\n");
+      expect(joined).toMatch(/guest activate ok/);
+      expect(joined).not.toMatch(/gt[^a-z]/);
+      expect(joined).not.toContain("Bearer");
     } finally {
       globalThis.fetch = orig;
     }

@@ -58,7 +58,12 @@ export function publicWebBearer(): string {
 export async function fetchWithRetry(
   url: string,
   init: RequestInit,
-  opts: { attempts?: number; sleepFn?: (ms: number) => Promise<void>; jitter?: () => number } = {},
+  opts: {
+    attempts?: number;
+    sleepFn?: (ms: number) => Promise<void>;
+    jitter?: () => number;
+    onRetry?: (info: { status: number; attempt: number; waitMs: number }) => void;
+  } = {},
 ): Promise<Response> {
   const attempts = opts.attempts ?? 4;
   const sleepFn = opts.sleepFn ?? sleep;
@@ -69,7 +74,9 @@ export async function fetchWithRetry(
       if (i === attempts - 1) {
         throw new HttpStatusError(last.status, `HTTP ${last.status}`);
       }
-      await sleepFn(backoffMs(i, opts.jitter));
+      const waitMs = backoffMs(i, opts.jitter);
+      opts.onRetry?.({ status: last.status, attempt: i + 1, waitMs });
+      await sleepFn(waitMs);
       continue;
     }
     return last;

@@ -15,7 +15,12 @@ Actor.on("migrating", async () => {
 });
 
 try {
+  log.info("actor start", {
+    hasEntitlementToken: Boolean(process.env.ENTITLEMENT_TOKEN),
+    hasCustomEntitlementStore: Boolean(process.env.ENTITLEMENT_STORE_NAME),
+  });
   const rawInput = await Actor.getInput();
+  log.info("input loaded", { present: rawInput !== null && rawInput !== undefined });
   const userId = Actor.getEnv().userId ?? process.env.APIFY_USER_ID ?? null;
   const storeName = process.env.ENTITLEMENT_STORE_NAME ?? "x-tweet-scraper-entitlements";
   const ownerToken = process.env.ENTITLEMENT_TOKEN;
@@ -31,11 +36,16 @@ try {
     return store.getValue(id);
   });
 
+  const runLog = {
+    info: (m: string, extra?: Record<string, unknown>) => log.info(m, extra),
+    warn: (m: string, extra?: Record<string, unknown>) => log.warning(m, extra),
+  };
+
   await runScraper({
     rawInput: rawInput ?? {},
     userId,
     entitlement,
-    http: new GuestXClient(),
+    http: new GuestXClient(fetch, runLog),
     dataset: {
       push: async (item: TweetOutput) => {
         await Actor.pushData(item);
@@ -54,10 +64,7 @@ try {
       },
     },
     now: () => new Date(),
-    log: {
-      info: (m, extra) => log.info(m, extra),
-      warn: (m, extra) => log.warning(m, extra),
-    },
+    log: runLog,
   });
 } catch (err) {
   if (err instanceof InputValidationError) {

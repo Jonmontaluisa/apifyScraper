@@ -1,5 +1,10 @@
-import type { ActorInput, HttpPage, XClientPort } from "../types.js";
+import type { ActorInput, HttpPage, LoggerPort, XClientPort } from "../types.js";
 import { buildSearchQuery, fetchWithRetry, HttpStatusError, publicWebBearer } from "./query.js";
+
+const silentLog: LoggerPort = {
+  info: () => undefined,
+  warn: () => undefined,
+};
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
@@ -108,10 +113,17 @@ export class GuestXClient implements XClientPort {
   private guestToken: string | null = null;
   private queryId = SEARCH_QUERY_IDS[0] ?? "Yw6L66Pw54NHKuq4Dp7b4Q";
 
-  public constructor(private readonly fetchImpl: typeof fetch = fetch) {}
+  public constructor(
+    private readonly fetchImpl: typeof fetch = fetch,
+    private readonly log: LoggerPort = silentLog,
+  ) {}
 
   private async activateGuest(): Promise<string> {
-    if (this.guestToken) return this.guestToken;
+    if (this.guestToken) {
+      this.log.info("guest token reused");
+      return this.guestToken;
+    }
+    this.log.info("guest activate start", { url: "https://api.twitter.com/1.1/guest/activate.json" });
     const res = await fetchWithRetry(
       "https://api.twitter.com/1.1/guest/activate.json",
       {
@@ -121,15 +133,23 @@ export class GuestXClient implements XClientPort {
           "User-Agent": UA,
         },
       },
+      {
+        onRetry: ({ status, attempt, waitMs }) => {
+          this.log.warn("guest activate backoff", { status, attempt, waitMs });
+        },
+      },
     );
     if (!res.ok) {
+      this.log.warn("guest activate failed", { status: res.status });
       throw new HttpStatusError(res.status, `guest activate HTTP ${res.status}`);
     }
     const body = (await res.json()) as { guest_token?: string };
     if (!body.guest_token) {
+      this.log.warn("guest activate missing token");
       throw new Error("guest activate missing token");
     }
     this.guestToken = body.guest_token;
+    this.log.info("guest activate ok");
     return this.guestToken;
   }
 
@@ -182,6 +202,14 @@ export class GuestXClient implements XClientPort {
     if (query.cursor) variables.cursor = query.cursor;
     const postBody = JSON.stringify({ variables, features: FEATURES });
 
+    this.log.info("search request", {
+      operation: "SearchTimeline",
+      product: query.product,
+      queryLength: q.length,
+      hasCursor: Boolean(query.cursor),
+      queryIdCount: SEARCH_QUERY_IDS.length,
+    });
+
     const tryIds = async (method: "GET" | "POST"): Promise<Response> => {
       let last: Response | undefined;
       for (const id of SEARCH_QUERY_IDS) {
@@ -193,6 +221,7 @@ export class GuestXClient implements XClientPort {
                 headers: this.headers(token),
                 body: postBody,
               });
+        this.log.info("search response", { method, queryId: id, status: last.status });
         if (last.status !== 404) {
           this.queryId = id;
           return last;
@@ -203,20 +232,29 @@ export class GuestXClient implements XClientPort {
 
     let res = await tryIds("GET");
     if (res.status === 404) {
+      this.log.info("search GET all 404, trying POST");
       res = await tryIds("POST");
     }
     if (res.status === 403 || res.status === 401) {
+      this.log.warn("search auth failed, rotating guest token", { status: res.status });
       this.guestToken = null;
       token = await this.activateGuest();
       res = await this.fetchImpl(this.searchGetUrl(this.queryId, variables), { headers: this.headers(token) });
+      this.log.info("search retry after rotate", { status: res.status, queryId: this.queryId });
     }
     if (res.status === 429 || res.status >= 500) {
+      this.log.warn("search server error", { status: res.status });
       throw new HttpStatusError(res.status, `HTTP ${res.status}`);
     }
     if (!res.ok) {
-      const snippet = (await res.text()).slice(0, 180);
-      throw new HttpStatusError(res.status, `HTTP ${res.status} ${snippet}`);
+      this.log.warn("search failed", { status: res.status });
+      throw new HttpStatusError(res.status, `HTTP ${res.status}`);
     }
-    return pageFromJson(await res.json());
+    const page = pageFromJson(await res.json());
+    this.log.info("search page parsed", {
+      tweets: page.tweets.length,
+      hasNextCursor: Boolean(page.nextCursor),
+    });
+    return page;
   }
 }
